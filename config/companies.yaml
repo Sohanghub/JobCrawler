@@ -1,0 +1,44 @@
+# The registry. Adding a Tier 0 company = one entry here, zero code.
+# Tier 1 will add: url + selectors:{...}; Tier 2: xhr:{...} or playwright: true;
+# Tier 3: zyte: true. (Phases 2-3.)
+# All boards below verified live on 2026-07-11.
+
+- name: Stripe
+  tier: 0
+  ats: greenhouse
+  token: stripe
+
+- name: GitLab
+  tier: 0
+  ats: greenhouse
+  token: gitlab
+
+- name: Cloudflare
+  tier: 0
+  ats: greenhouse
+  token: cloudflare
+
+- name: Databricks
+  tier: 0
+  ats: greenhouse
+  token: databricks
+
+- name: Postman
+  tier: 0
+  ats: greenhouse
+  token: postman
+
+- name: PhonePe
+  tier: 0
+  ats: greenhouse
+  token: phonepe
+
+- name: Spotify
+  tier: 0
+  ats: lever
+  token: spotify
+
+- name: Palantir
+  tier: 0
+  ats: lever
+  token: palantir

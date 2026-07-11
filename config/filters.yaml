@@ -1,0 +1,22 @@
+# ============================================================
+# EDIT ME before the first real run — these are placeholders.
+# ============================================================
+# roles: keywords fuzzy-matched against job titles (rapidfuzz partial_ratio)
+# title_threshold: 0-100; lower = looser matching
+# locations: case-insensitive substrings matched against the job's location
+# experience: not enforced yet (Phase 2 heuristic)
+
+roles:
+  - Software Engineer
+  - Backend Engineer
+
+title_threshold: 85
+
+locations:
+  - Remote
+  - India
+  - Bengaluru
+  - Bangalore
+  - Hyderabad
+
+experience: 0-2 years
