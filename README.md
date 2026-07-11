@@ -39,9 +39,39 @@ One YAML entry in `config/companies.yaml` — no code:
 ```yaml
 - name: Example
   tier: 0
-  ats: greenhouse   # or lever
+  ats: greenhouse   # or lever / ashby / workday
   token: example    # board token from the company's careers URL
 ```
+
+Tier 1 (server-rendered HTML) adds `url` + `selectors:`, Tier 2 (SPA) adds
+`xhr:` or `playwright:`, Tier 3 (anti-bot) uses `ats: zyte` + selectors and
+needs `ZYTE_API_KEY` (capped by `MAX_ZYTE_REQUESTS_PER_RUN`, default 20).
+
+## Growing the registry (discovery loop)
+
+```
+python -m jobcrawler.discovery.search            # find candidates (JSearch /
+                                                 #  site: search / data/board_tokens.txt)
+python -m jobcrawler.discovery.resolve probe     # deterministic ATS detection
+python -m jobcrawler.discovery.resolve infer     # LLM (Claude batch) for the rest
+python -m jobcrawler.discovery.resolve collect   # batch results -> pending_review.yaml
+python -m jobcrawler.discovery.resolve approve   # live-validate + merge into registry
+```
+
+Nothing reaches `companies.yaml` without passing the approve step's live
+validation (>=1 job parsed). The weekly workflow runs search + probe and
+tells you on Telegram how many entries await approval.
+
+Optional env vars / repo secrets: `ANTHROPIC_API_KEY` (LLM inference + the
+`ai_digest` flag in filters.yaml), `JSEARCH_API_KEY`, `ZYTE_API_KEY`.
+
+## Semantic matching
+
+Installing `requirements-ml.txt` enables sentence-transformers + Chroma title
+matching alongside rapidfuzz; digest entries are tagged `[fuzzy]`,
+`[semantic]`, or `[fuzzy+semantic]` so the two can be compared. Tune
+`semantic_threshold` in `config/filters.yaml`. Without those packages the run
+is fuzzy-only.
 
 ## Tests
 

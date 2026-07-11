@@ -38,11 +38,20 @@ def experience_ok(job, filters):
     return True
 
 
-def matches(job, filters):
+def title_ok(job, filters):
     threshold = filters.get("title_threshold", 85)
     title = job.title.lower()
-    title_ok = any(fuzz.partial_ratio(kw.lower(), title) >= threshold
-                   for kw in filters["roles"])
+    return any(fuzz.partial_ratio(kw.lower(), title) >= threshold
+               for kw in filters["roles"])
+
+
+def deterministic_ok(job, filters):
+    """Location + experience checks — required regardless of whether the
+    title matched via fuzzy or semantic similarity."""
     location = job.location.lower()
     loc_ok = any(loc.lower() in location for loc in filters["locations"])
-    return title_ok and loc_ok and experience_ok(job, filters)
+    return loc_ok and experience_ok(job, filters)
+
+
+def matches(job, filters):
+    return title_ok(job, filters) and deterministic_ok(job, filters)

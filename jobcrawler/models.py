@@ -15,6 +15,7 @@ class JobPosting:
     description: str = ""
     posted_at: str = ""
     source_tier: int = 0
+    matched_by: str = ""  # "fuzzy", "semantic", or "fuzzy+semantic"
 
 
 def canonical_url(url: str) -> str:

@@ -20,3 +20,11 @@ locations:
   - Hyderabad
 
 experience: 0-2 years
+
+# Cosine-similarity floor for semantic title matching (runs alongside fuzzy
+# when sentence-transformers + chromadb are installed). On all-MiniLM-L6-v2,
+# engineering titles score ~0.46-0.83 vs "Software Engineer"; non-tech ~0.2-0.4.
+semantic_threshold: 0.45
+
+# Optional Claude-written intro on the daily digest (needs ANTHROPIC_API_KEY).
+ai_digest: false

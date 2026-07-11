@@ -1,0 +1,12 @@
+- name: NVIDIA
+  entry:
+    name: NVIDIA
+    tier: 0
+    ats: workday
+    workday:
+      host: nvidia.wd5.myworkdayjobs.com
+      site: NVIDIAExternalCareerSite
+  evidence: '2000 jobs live; sample: Software Engineering Manager - GPU Communications
+    Libraries; Senior Software Program Manager - Datacenter Compute Server; Senior
+    NPI Program Manager - Datacenter Server Products'
+  source: probe

@@ -4,4 +4,5 @@ rapidfuzz
 beautifulsoup4
 lxml
 playwright
+anthropic
 pytest

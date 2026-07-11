@@ -1,7 +1,7 @@
 import logging
 import os
 
-from . import matching, notify, registry
+from . import matching, notify, registry, semantic
 from .fetchers import FETCHERS
 from .http import Http, Unchanged
 from .store import Store
@@ -31,6 +31,10 @@ def main():
     store = Store()
     http = Http(store)
     seed_mode = store.is_empty()
+    use_semantic = semantic.available()
+    if use_semantic:
+        log.info("semantic matching active (sentence-transformers + Chroma), "
+                 "running alongside rapidfuzz")
 
     fresh = []
     for c in companies:
@@ -51,7 +55,21 @@ def main():
             log.error("%s: fetch failed: %s", name, e)
             store.log_run(name, "error", 0, str(e))
             continue
-        matched_ids = {j.id for j in jobs if matching.matches(j, filters)}
+        fuzzy_ids = {j.id for j in jobs if matching.matches(j, filters)}
+        semantic_ids = set()
+        if use_semantic:
+            candidates = [j for j in jobs
+                          if matching.deterministic_ok(j, filters)]
+            try:
+                semantic_ids = semantic.title_match_ids(candidates, filters)
+            except Exception as e:
+                log.warning("%s: semantic matching failed: %s", name, e)
+        matched_ids = fuzzy_ids | semantic_ids
+        for j in jobs:
+            if j.id in matched_ids:
+                j.matched_by = "+".join(
+                    m for m, hit in (("fuzzy", j.id in fuzzy_ids),
+                                     ("semantic", j.id in semantic_ids)) if hit)
         new = store.insert_new(jobs, matched_ids)
         fresh.extend(j for j in new if j.id in matched_ids)
         store.log_run(name, "ok", len(jobs))
@@ -66,7 +84,7 @@ def main():
     for a in alerts:
         log.warning("health: %s", a)
     if fresh or alerts:
-        notify.send(fresh, alerts)
+        notify.send(fresh, alerts, ai_digest=filters.get("ai_digest", False))
         log.info("notified: %d fresh job(s), %d health alert(s)",
                  len(fresh), len(alerts))
     else:

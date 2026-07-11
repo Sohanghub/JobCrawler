@@ -93,3 +93,13 @@
     location: ".listing-location"
     detail:
       description: ".job-description"
+
+- name: Ramp
+  tier: 0
+  ats: ashby
+  token: ramp
+
+- name: Figma
+  tier: 0
+  ats: greenhouse
+  token: figma

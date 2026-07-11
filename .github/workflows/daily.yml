@@ -16,7 +16,7 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
-      - run: pip install -r requirements.txt
+      - run: pip install -r requirements.txt -r requirements-ml.txt
       - name: Install Playwright browser (only if a company needs it)
         # ponytail: no browser cache yet; add actions/cache on
         # ~/.cache/ms-playwright when a playwright company exists
@@ -28,6 +28,8 @@ jobs:
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          ZYTE_API_KEY: ${{ secrets.ZYTE_API_KEY }}
       - name: Commit dedup DB back
         run: |
           git config user.name "github-actions"

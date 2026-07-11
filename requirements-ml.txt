@@ -1,0 +1,4 @@
+# Optional: semantic matching (Phase 4). Without these installed the daily
+# run silently falls back to fuzzy-only matching.
+sentence-transformers
+chromadb

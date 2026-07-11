@@ -13,17 +13,11 @@ def _text(el, selector):
     return node.get_text(strip=True) if node else ""
 
 
-def fetch(company, http):
-    """Tier 1: server-rendered HTML, selectors from the registry.
-
-    Bounded 2-hop crawl: the listing page, then (optionally) up to
-    detail_limit detail pages linked from it.
-    """
+def parse_listing(company, html_text):
+    """Parse a listing page's HTML into jobs (no detail hop). Reused by the
+    Tier 3 Zyte fetcher, which obtains the HTML through the Zyte API."""
     sel = company["selectors"]
-    r = http.get(company["url"], cache=True)
-    r.raise_for_status()
-    soup = BeautifulSoup(r.text, "lxml")
-
+    soup = BeautifulSoup(html_text, "lxml")
     jobs = []
     for item in soup.select(sel["job_item"]):
         link = item.select_one(sel.get("link", "a"))
@@ -39,8 +33,20 @@ def fetch(company, http):
                        location=location),
             company=company["name"], title=title, location=location,
             url=url, source_tier=1))
+    return jobs
 
-    detail = sel.get("detail")
+
+def fetch(company, http):
+    """Tier 1: server-rendered HTML, selectors from the registry.
+
+    Bounded 2-hop crawl: the listing page, then (optionally) up to
+    detail_limit detail pages linked from it.
+    """
+    r = http.get(company["url"], cache=True)
+    r.raise_for_status()
+    jobs = parse_listing(company, r.text)
+
+    detail = company["selectors"].get("detail")
     if detail and detail.get("description"):
         for j in jobs[:company.get("detail_limit", 20)]:
             if not j.url:
