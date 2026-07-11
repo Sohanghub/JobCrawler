@@ -22,16 +22,22 @@ def _messages(jobs):
     yield text
 
 
-def send(jobs):
+def send(jobs, alerts=()):
+    msgs = list(_messages(jobs)) if jobs else []
+    if alerts:
+        msgs.append("⚠️ <b>Health alerts</b>\n"
+                    + "\n".join(html.escape(a) for a in alerts))
+    if not msgs:
+        return
     token = os.environ.get("TELEGRAM_BOT_TOKEN")
     chat_id = os.environ.get("TELEGRAM_CHAT_ID")
     if not token or not chat_id:
         log.warning("TELEGRAM_BOT_TOKEN/TELEGRAM_CHAT_ID not set; "
                     "printing digest to stdout instead")
-        for msg in _messages(jobs):
+        for msg in msgs:
             print(msg)
         return
-    for msg in _messages(jobs):
+    for msg in msgs:
         r = requests.post(
             f"https://api.telegram.org/bot{token}/sendMessage",
             json={"chat_id": chat_id, "text": msg, "parse_mode": "HTML",

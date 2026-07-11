@@ -22,3 +22,26 @@ def test_dedup_and_seed_mode(tmp_path):
     # unmatched jobs were stored too: re-inserting id-2 as matched is not "new"
     new = store.insert_new([job(2)], matched_ids={"id-2"})
     assert new == []
+
+
+def test_health_alerts(tmp_path):
+    store = Store(str(tmp_path / "jobs.db"))
+
+    store.log_run("Broken", "ok", 10)
+    store.log_run("Broken", "error", 0, "boom")
+    store.log_run("Broken", "error", 0, "boom")
+
+    store.log_run("ZeroDrop", "ok", 50)
+    store.log_run("ZeroDrop", "unchanged", 0)  # must not count as a real 0
+    store.log_run("ZeroDrop", "ok", 0)
+
+    store.log_run("OneBlip", "ok", 5)
+    store.log_run("OneBlip", "error", 0, "transient")  # single error: no alert
+
+    store.log_run("Healthy", "ok", 5)
+    store.log_run("Healthy", "unchanged", 0)
+
+    alerts = store.health_alerts()
+    assert len(alerts) == 2
+    assert any("Broken" in a and "2 consecutive" in a for a in alerts)
+    assert any("ZeroDrop" in a and "was 50" in a for a in alerts)

@@ -9,6 +9,9 @@ CREATE TABLE IF NOT EXISTS jobs(
     posted_at TEXT, first_seen TEXT, matched INTEGER);
 CREATE TABLE IF NOT EXISTS run_log(
     run_date TEXT, company TEXT, status TEXT, jobs_found INTEGER, error TEXT);
+CREATE TABLE IF NOT EXISTS page_cache(
+    url TEXT PRIMARY KEY, etag TEXT, last_modified TEXT,
+    body_sha1 TEXT, fetched_at TEXT);
 """
 
 
@@ -48,3 +51,40 @@ class Store:
         self.db.execute("INSERT INTO run_log VALUES (?,?,?,?,?)",
                         (_utcnow(), company, status, jobs_found, error))
         self.db.commit()
+
+    def get_cache(self, url):
+        row = self.db.execute(
+            "SELECT etag, last_modified, body_sha1 FROM page_cache WHERE url=?",
+            (url,)).fetchone()
+        if not row:
+            return None
+        return {"etag": row[0], "last_modified": row[1], "body_sha1": row[2]}
+
+    def set_cache(self, url, etag, last_modified, body_sha1):
+        self.db.execute("INSERT OR REPLACE INTO page_cache VALUES (?,?,?,?,?)",
+                        (url, etag, last_modified, body_sha1, _utcnow()))
+        self.db.commit()
+
+    def health_alerts(self):
+        """Companies that look silently broken, for the daily digest."""
+        alerts = []
+        for (name,) in self.db.execute("SELECT DISTINCT company FROM run_log"):
+            rows = self.db.execute(
+                "SELECT status, jobs_found, error FROM run_log "
+                "WHERE company=? AND status != 'skipped' "
+                "ORDER BY rowid DESC LIMIT 10", (name,)).fetchall()
+            errors = 0
+            for status, _, _ in rows:
+                if status != "error":
+                    break
+                errors += 1
+            if errors >= 2:
+                alerts.append(f"{name}: {errors} consecutive failed runs "
+                              f"({(rows[0][2] or '')[:120]})")
+                continue
+            # compare the last two *fetched* runs; 'unchanged' runs don't count
+            oks = [jf for status, jf, _ in rows if status == "ok"]
+            if len(oks) >= 2 and oks[0] == 0 and oks[1] > 0:
+                alerts.append(f"{name}: 0 jobs found (was {oks[1]}) — "
+                              "parser may be broken")
+        return alerts

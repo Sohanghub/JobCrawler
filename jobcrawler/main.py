@@ -3,7 +3,7 @@ import os
 
 from . import matching, notify, registry
 from .fetchers import FETCHERS
-from .http import session
+from .http import Http, Unchanged
 from .store import Store
 
 log = logging.getLogger("jobcrawler")
@@ -29,7 +29,7 @@ def main():
     companies = registry.load_companies()
     filters = matching.load_filters()
     store = Store()
-    http = session()
+    http = Http(store)
     seed_mode = store.is_empty()
 
     fresh = []
@@ -43,6 +43,10 @@ def main():
             continue
         try:
             jobs = fetch(c, http)
+        except Unchanged:
+            store.log_run(name, "unchanged", 0)
+            log.info("%s: unchanged since last run", name)
+            continue
         except Exception as e:
             log.error("%s: fetch failed: %s", name, e)
             store.log_run(name, "error", 0, str(e))
@@ -57,9 +61,14 @@ def main():
     if seed_mode:
         log.info("first run: seeded DB silently, no notifications "
                  "(%d jobs would have matched)", len(fresh))
-    elif fresh:
-        notify.send(fresh)
-        log.info("notified %d fresh matching job(s)", len(fresh))
+        return
+    alerts = store.health_alerts()
+    for a in alerts:
+        log.warning("health: %s", a)
+    if fresh or alerts:
+        notify.send(fresh, alerts)
+        log.info("notified: %d fresh job(s), %d health alert(s)",
+                 len(fresh), len(alerts))
     else:
         log.info("no fresh matches today")
 

@@ -42,3 +42,54 @@
   tier: 0
   ats: lever
   token: palantir
+
+# --- Tier 0: Workday (verified live 2026-07-12) ---
+
+- name: Adobe
+  tier: 0
+  ats: workday
+  workday:
+    host: adobe.wd5.myworkdayjobs.com
+    site: external_experienced
+
+- name: Workday
+  tier: 0
+  ats: workday
+  workday:
+    host: workday.wd5.myworkdayjobs.com
+    site: Workday
+
+# --- Tier 2: SPA whose internal JSON endpoint is recorded (no browser) ---
+# For sites where the endpoint can't be replayed, use instead:
+#   url: <careers page>
+#   playwright:
+#     capture: <regex matched against XHR URLs>
+#     jobs_path: ... / fields: ... (same as xhr)
+
+- name: Linear
+  tier: 2
+  ats: spa
+  xhr:
+    url: https://api.ashbyhq.com/posting-api/job-board/linear
+    jobs_path: jobs
+    fields:
+      title: title
+      location: location
+      url: jobUrl
+      id: id
+      description: descriptionPlain
+
+# --- Tier 1: server-rendered HTML, CSS selectors ---
+
+- name: Python.org Jobs
+  tier: 1
+  ats: html
+  url: https://www.python.org/jobs/
+  detail_limit: 10
+  selectors:
+    job_item: ".list-recent-jobs li"
+    title: ".listing-company-name a"
+    link: ".listing-company-name a"
+    location: ".listing-location"
+    detail:
+      description: ".job-description"

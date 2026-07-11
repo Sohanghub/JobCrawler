@@ -1,4 +1,7 @@
 requests
 PyYAML
 rapidfuzz
+beautifulsoup4
+lxml
+playwright
 pytest

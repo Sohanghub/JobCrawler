@@ -25,3 +25,22 @@ def job(title, location):
 ])
 def test_matches(title, location, expected):
     assert matches(job(title, location), FILTERS) is expected
+
+
+FILTERS_EXP = {**FILTERS, "experience": "0-2 years"}
+
+
+@pytest.mark.parametrize("title,description,expected", [
+    ("Software Engineer", "", True),                       # no signal: keep
+    ("Senior Software Engineer", "", False),               # seniority in title
+    ("Staff Backend Engineer", "", False),
+    ("Software Engineer", "Requires 5+ years of Python", False),
+    ("Software Engineer", "3-5 years experience needed", False),
+    ("Software Engineer", "0-2 years of experience", True),
+    ("Software Engineer Intern", "5+ years preferred", True),  # junior title wins
+    ("Junior Software Engineer", "", True),
+])
+def test_experience_heuristic(title, description, expected):
+    j = job(title, "Remote")
+    j.description = description
+    assert matches(j, FILTERS_EXP) is expected

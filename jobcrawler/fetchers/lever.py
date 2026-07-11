@@ -3,7 +3,7 @@ from ..models import JobPosting, make_id
 
 def fetch(company, http):
     url = f"https://api.lever.co/v0/postings/{company['token']}?mode=json"
-    r = http.get(url, timeout=30)
+    r = http.get(url, cache=True)
     r.raise_for_status()
     jobs = []
     for j in r.json():
