@@ -45,14 +45,3 @@ def test_xhr_dotted_path_extraction():
 def test_dig_missing_path_is_none():
     assert spa_tier2.dig({"a": {"b": 1}}, "a.b") == 1
     assert spa_tier2.dig({"a": {"b": 1}}, "a.c.d") is None
-
-
-def test_first_with_jobs_skips_jobless_payloads():
-    cfg = COMPANY["xhr"]
-    # first XHR matched the regex but holds no jobs (e.g. org metadata)
-    jobs = spa_tier2._first_with_jobs(COMPANY, cfg, [{"data": {"org": 1}}, DATA])
-    assert len(jobs) == 1
-
-    import pytest
-    with pytest.raises(RuntimeError):
-        spa_tier2._first_with_jobs(COMPANY, cfg, [{"data": {"org": 1}}])

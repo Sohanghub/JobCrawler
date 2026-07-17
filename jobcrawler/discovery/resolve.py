@@ -10,13 +10,10 @@ approval before anything reaches the live registry):
       that live-validates moves to config/pending_review.yaml.
 
   python -m jobcrawler.discovery.resolve infer
-      Submit the still-unresolved candidates (with a careers URL) to Claude
-      via the Message Batches API (50% off, off the daily path): classify the
-      ATS or propose Tier 1 selectors / a Tier 2 XHR endpoint from the page
-      HTML. Prints the batch id.
-
-  python -m jobcrawler.discovery.resolve collect [batch_id]
-      Fetch a finished batch's results into pending_review.yaml.
+      Send the still-unresolved candidates (with a careers URL) to an LLM via
+      OpenRouter (OPENROUTER_API_KEY): classify the ATS or propose Tier 1
+      selectors / a Tier 2 XHR endpoint from the page HTML. Proposals land in
+      pending_review.yaml.
 
   python -m jobcrawler.discovery.resolve approve [name ...]
       Live-validate pending entries (must parse >=1 job) and merge the
@@ -26,6 +23,7 @@ approval before anything reaches the live registry):
 import argparse
 import json
 import logging
+import os
 import re
 import sys
 
@@ -39,8 +37,7 @@ log = logging.getLogger(__name__)
 
 CANDIDATES = "config/candidates.yaml"
 PENDING = "config/pending_review.yaml"
-LAST_BATCH = "data/last_batch_id.txt"
-RESOLVE_MODEL = "claude-opus-4-8"
+RESOLVE_MODEL = os.environ.get("RESOLVE_MODEL", "poolside/laguna-xs-2.1:free")
 HTML_LIMIT = 40000  # chars of page HTML sent to the model
 
 WORKDAY_RE = re.compile(
@@ -212,45 +209,56 @@ Page HTML (truncated):
 
 
 def cmd_infer(args):
-    import anthropic
-    from anthropic.types.message_create_params import MessageCreateParamsNonStreaming
-    from anthropic.types.messages.batch_create_params import Request
-
+    key = os.environ.get("OPENROUTER_API_KEY")
+    if not key:
+        sys.exit("OPENROUTER_API_KEY not set")
     http = _http()
-    candidates = [c for c in _load(CANDIDATES) if c.get("url")]
-    if not candidates:
+    candidates = _load(CANDIDATES)
+    with_url = [c for c in candidates if c.get("url")]
+    if not with_url:
         log.info("no unresolved candidates with a careers URL")
         return
-    requests_ = []
-    for cand in candidates:
+    pending = _load(PENDING)
+    added = 0
+    for cand in with_url:
         try:
             page = http.get(cand["url"]).text[:HTML_LIMIT]
         except Exception as e:
             log.warning("%s: could not fetch %s: %s", cand["name"],
                         cand["url"], e)
             continue
-        custom_id = re.sub(r"[^A-Za-z0-9_-]", "-", cand["name"])[:64]
-        requests_.append(Request(
-            custom_id=custom_id,
-            params=MessageCreateParamsNonStreaming(
-                model=RESOLVE_MODEL,
-                max_tokens=2000,
-                thinking={"type": "adaptive"},
-                output_config={"format": {"type": "json_schema",
-                                          "schema": SCHEMA}},
-                messages=[{"role": "user", "content": PROMPT.format(
-                    name=cand["name"], url=cand["url"], html=page)}],
-            )))
-    if not requests_:
-        log.info("nothing to submit")
-        return
-    client = anthropic.Anthropic()
-    batch = client.messages.batches.create(requests=requests_)
-    with open(LAST_BATCH, "w", encoding="utf-8") as f:
-        f.write(batch.id)
-    log.info("submitted batch %s with %d request(s); run "
-             "'resolve collect' once it ends (usually <1h)",
-             batch.id, len(requests_))
+        try:
+            r = http.post(
+                "https://openrouter.ai/api/v1/chat/completions",
+                headers={"Authorization": f"Bearer {key}"},
+                json={"model": RESOLVE_MODEL,
+                      "max_tokens": 2000,
+                      "response_format": {
+                          "type": "json_schema",
+                          "json_schema": {"name": "ats_classification",
+                                          "strict": True, "schema": SCHEMA}},
+                      "messages": [{"role": "user", "content": PROMPT.format(
+                          name=cand["name"], url=cand["url"], html=page)}]},
+                timeout=120)
+            r.raise_for_status()
+            data = json.loads(r.json()["choices"][0]["message"]["content"])
+        except Exception as e:
+            log.warning("%s: LLM inference failed: %s", cand["name"], e)
+            continue
+        entry = _entry_from_llm(cand, data)
+        if entry is None:
+            log.info("%s: model says %s (%s)", cand["name"], data.get("ats"),
+                     data.get("notes", "")[:200])
+            continue
+        pending.append({"name": cand["name"], "entry": entry,
+                        "evidence": f"LLM: {data.get('notes', '')[:300]}",
+                        "source": "llm"})
+        candidates.remove(cand)
+        added += 1
+    _save(CANDIDATES, candidates)
+    _save(PENDING, pending)
+    log.info("inferred %d proposal(s) into %s — review, then run "
+             "'resolve approve'", added, PENDING)
 
 
 def _entry_from_llm(cand, data):
@@ -271,57 +279,6 @@ def _entry_from_llm(cand, data):
                         "fields": {"title": "title", "location": "location",
                                    "url": "url", "id": "id"}}}
     return None
-
-
-def cmd_collect(args):
-    import anthropic
-
-    batch_id = args.batch_id
-    if not batch_id:
-        try:
-            with open(LAST_BATCH, encoding="utf-8") as f:
-                batch_id = f.read().strip()
-        except FileNotFoundError:
-            sys.exit("no batch id given and no data/last_batch_id.txt")
-    client = anthropic.Anthropic()
-    batch = client.messages.batches.retrieve(batch_id)
-    if batch.processing_status != "ended":
-        log.info("batch %s still %s (%s processing) — try again later",
-                 batch_id, batch.processing_status,
-                 batch.request_counts.processing)
-        return
-    candidates = _load(CANDIDATES)
-    by_custom_id = {re.sub(r"[^A-Za-z0-9_-]", "-", c["name"])[:64]: c
-                    for c in candidates}
-    pending = _load(PENDING)
-    added = 0
-    for result in client.messages.batches.results(batch_id):
-        cand = by_custom_id.get(result.custom_id)
-        if result.result.type != "succeeded" or cand is None:
-            log.warning("%s: batch result %s", result.custom_id,
-                        result.result.type)
-            continue
-        msg = result.result.message
-        text = next((b.text for b in msg.content if b.type == "text"), "")
-        try:
-            data = json.loads(text)
-        except json.JSONDecodeError:
-            log.warning("%s: unparseable model output", result.custom_id)
-            continue
-        entry = _entry_from_llm(cand, data)
-        if entry is None:
-            log.info("%s: model says %s (%s)", cand["name"], data.get("ats"),
-                     data.get("notes", "")[:200])
-            continue
-        pending.append({"name": cand["name"], "entry": entry,
-                        "evidence": f"LLM: {data.get('notes', '')[:300]}",
-                        "source": "llm"})
-        candidates.remove(cand)
-        added += 1
-    _save(CANDIDATES, candidates)
-    _save(PENDING, pending)
-    log.info("collected %d proposal(s) into %s — review, then run "
-             "'resolve approve'", added, PENDING)
 
 
 def cmd_approve(args):
@@ -362,9 +319,6 @@ def main():
     p.set_defaults(func=cmd_probe)
     p = sub.add_parser("infer")
     p.set_defaults(func=cmd_infer)
-    p = sub.add_parser("collect")
-    p.add_argument("batch_id", nargs="?")
-    p.set_defaults(func=cmd_collect)
     p = sub.add_parser("approve")
     p.add_argument("names", nargs="*")
     p.set_defaults(func=cmd_approve)

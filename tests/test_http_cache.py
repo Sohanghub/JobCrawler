@@ -35,9 +35,19 @@ def test_body_hash_short_circuit(tmp_path):
                                 FakeResponse(content=b"same"),
                                 FakeResponse(content=b"different")])
     assert http.get("http://x/a", cache=True).content == b"same"
+    http.commit_cache()  # parse succeeded
     with pytest.raises(Unchanged):
         http.get("http://x/a", cache=True)
     assert http.get("http://x/a", cache=True).content == b"different"
+
+
+def test_uncommitted_fetch_is_refetched(tmp_path):
+    # A parser crash means commit_cache() never ran; the next run must
+    # re-fetch and re-parse instead of raising Unchanged forever.
+    http = make_http(tmp_path, [FakeResponse(content=b"same"),
+                                FakeResponse(content=b"same")])
+    http.get("http://x/a", cache=True)  # no commit -> parse crashed
+    assert http.get("http://x/a", cache=True).content == b"same"
 
 
 def test_304_and_conditional_headers(tmp_path):
@@ -46,6 +56,7 @@ def test_304_and_conditional_headers(tmp_path):
         FakeResponse(status_code=304),
     ])
     http.get("http://x/a", cache=True)
+    http.commit_cache()
     with pytest.raises(Unchanged):
         http.get("http://x/a", cache=True)
     assert http.session.sent_headers[1].get("If-None-Match") == '"e1"'

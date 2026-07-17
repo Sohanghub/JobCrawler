@@ -15,7 +15,7 @@ def _text(el, selector):
 
 def parse_listing(company, html_text):
     """Parse a listing page's HTML into jobs (no detail hop). Reused by the
-    Tier 3 Zyte fetcher, which obtains the HTML through the Zyte API."""
+    Tier 3 fetcher, which obtains the HTML through the ScrapingAnt API."""
     sel = company["selectors"]
     soup = BeautifulSoup(html_text, "lxml")
     jobs = []

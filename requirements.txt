@@ -1,8 +1,6 @@
-requests
-PyYAML
-rapidfuzz
-beautifulsoup4
-lxml
-playwright
-anthropic
-pytest
+# Runtime deps only. Dev tools: requirements-dev.txt.
+requests~=2.34
+PyYAML~=6.0
+rapidfuzz~=3.14
+beautifulsoup4~=4.15
+lxml~=6.1

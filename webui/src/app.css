@@ -1,0 +1,49 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400;1,9..144,600&family=IBM+Plex+Mono:wght@400;500;700&display=swap');
+
+:root {
+  /* 60: warm surfaces */
+  --color-page-bg: #EDE4D3;  /* warm beige */
+  --color-card: #FFFDF9;
+  --color-border: #D9BDA9;
+  /* 30: ink / indigo */
+  --color-ink: #2B1E16;
+  --color-meta: #8A6F63;
+  --color-indigo: #1F2A8C;
+  /* 10: terracotta = matched, nothing else */
+  --color-hero: #C85A32;
+  --color-hero-deep: #B84A24;
+  --shadow: 0 2px 6px rgba(120, 60, 30, 0.12);
+  --shadow-up: 0 4px 10px rgba(120, 60, 30, 0.16);
+  --radius: 14px;
+  --mono: 'IBM Plex Mono', ui-monospace, monospace;
+  --display: 'Fraunces', Georgia, serif;
+  --ease: 180ms ease;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--color-page-bg);
+  color: var(--color-ink);
+  font-family: var(--display);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* film grain, sits over everything */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  pointer-events: none;
+  opacity: 0.35;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.35'/%3E%3C/svg%3E");
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-hero);
+  outline-offset: 2px;
+}

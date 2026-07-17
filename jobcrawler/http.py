@@ -21,6 +21,7 @@ class Http:
         self.store = store
         self.min_interval = min_interval
         self._last = {}  # domain -> monotonic time of last request
+        self._pending_cache = None  # cache row awaiting commit_cache()
         if session is None:
             session = requests.Session()
             retry = Retry(total=3, backoff_factor=1,
@@ -43,11 +44,17 @@ class Http:
         body-hash comparison; raises Unchanged when the page didn't change.
         Fetchers opt in only on their FIRST request per company, so an
         Unchanged can never abort a multi-page crawl halfway through.
+
+        The cache row is NOT written here — it is staged and persisted only
+        by commit_cache(), after the page parsed successfully. Otherwise a
+        parser crash would freeze a broken page as "unchanged" forever.
         """
         self._throttle(url)
         kwargs.setdefault("timeout", 30)
         headers = dict(kwargs.pop("headers", None) or {})
         cached = self.store.get_cache(url) if cache and self.store else None
+        if cache:
+            self._pending_cache = None
         if cached and cached["etag"]:
             headers["If-None-Match"] = cached["etag"]
         if cached and cached["last_modified"]:
@@ -58,12 +65,19 @@ class Http:
                 raise Unchanged(url)
             r.raise_for_status()
             sha1 = hashlib.sha1(r.content).hexdigest()
-            unchanged = bool(cached and cached["body_sha1"] == sha1)
-            self.store.set_cache(url, r.headers.get("ETag"),
-                                 r.headers.get("Last-Modified"), sha1)
-            if unchanged:
+            self._pending_cache = (url, r.headers.get("ETag"),
+                                   r.headers.get("Last-Modified"), sha1)
+            if cached and cached["body_sha1"] == sha1:
                 raise Unchanged(url)
         return r
+
+    def commit_cache(self):
+        """Persist the staged cache row from the last cached get(). Call
+        after a successful parse (or on Unchanged, whose refreshed
+        ETag/Last-Modified is safe because the prior parse was good)."""
+        if self._pending_cache and self.store:
+            self.store.set_cache(*self._pending_cache)
+            self._pending_cache = None
 
     def post(self, url, **kwargs):
         self._throttle(url)

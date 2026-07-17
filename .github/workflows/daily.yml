@@ -16,20 +16,13 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
-      - run: pip install -r requirements.txt -r requirements-ml.txt
-      - name: Install Playwright browser (only if a company needs it)
-        # ponytail: no browser cache yet; add actions/cache on
-        # ~/.cache/ms-playwright when a playwright company exists
-        run: |
-          if grep -q "playwright:" config/companies.yaml; then
-            python -m playwright install --with-deps chromium
-          fi
+      - run: pip install -r requirements.txt
       - run: python -m jobcrawler.main
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          ZYTE_API_KEY: ${{ secrets.ZYTE_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          SCRAPINGANT_API_KEY: ${{ secrets.SCRAPINGANT_API_KEY }}
       - name: Commit dedup DB back
         run: |
           git config user.name "github-actions"

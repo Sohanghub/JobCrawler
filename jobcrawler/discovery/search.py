@@ -37,6 +37,8 @@ def jsearch_candidates(http, filters):
         log.info("JSEARCH_API_KEY not set; skipping JSearch")
         return []
     out = []
+    # JSearch free tier is 200 requests/MONTH: 2 roles x 1 page x weekly run
+    # ~= 9/month. Widen the slice only with that budget in mind.
     for role in filters["roles"][:2]:
         query = f"{role} in {filters['locations'][0]}"
         try:

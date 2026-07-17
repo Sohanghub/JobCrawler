@@ -28,6 +28,10 @@ First run seeds the DB silently (no notification storm). Later runs notify
 only never-seen-before postings that match your filters. Without Telegram
 env vars the digest prints to stdout.
 
+Web UI (browse the DB): `cd webui && npm install && npm run build`, then
+`python webui/server.py` → http://localhost:8765. For UI development,
+`npm run dev` in `webui/` proxies `/api` to that server.
+
 CI: `.github/workflows/daily.yml` runs daily at 08:00 IST and commits
 `data/jobs.db` back to the repo (that's how dedup state survives stateless
 runners).
@@ -43,9 +47,8 @@ One YAML entry in `config/companies.yaml` — no code:
   token: example    # board token from the company's careers URL
 ```
 
-Tier 1 (server-rendered HTML) adds `url` + `selectors:`, Tier 2 (SPA) adds
-`xhr:` or `playwright:`, Tier 3 (anti-bot) uses `ats: zyte` + selectors and
-needs `ZYTE_API_KEY` (capped by `MAX_ZYTE_REQUESTS_PER_RUN`, default 20).
+Tier 1 (server-rendered HTML) adds `url` + `selectors:`; Tier 2 (SPA) adds
+`xhr:` — the site's own JSON endpoint, replayed over plain HTTP.
 
 ## Growing the registry (discovery loop)
 
@@ -53,8 +56,8 @@ needs `ZYTE_API_KEY` (capped by `MAX_ZYTE_REQUESTS_PER_RUN`, default 20).
 python -m jobcrawler.discovery.search            # find candidates (JSearch /
                                                  #  site: search / data/board_tokens.txt)
 python -m jobcrawler.discovery.resolve probe     # deterministic ATS detection
-python -m jobcrawler.discovery.resolve infer     # LLM (Claude batch) for the rest
-python -m jobcrawler.discovery.resolve collect   # batch results -> pending_review.yaml
+python -m jobcrawler.discovery.resolve infer     # LLM (via OpenRouter) for the rest
+                                                 #  -> pending_review.yaml
 python -m jobcrawler.discovery.resolve approve   # live-validate + merge into registry
 ```
 
@@ -62,19 +65,13 @@ Nothing reaches `companies.yaml` without passing the approve step's live
 validation (>=1 job parsed). The weekly workflow runs search + probe and
 tells you on Telegram how many entries await approval.
 
-Optional env vars / repo secrets: `ANTHROPIC_API_KEY` (LLM inference + the
-`ai_digest` flag in filters.yaml), `JSEARCH_API_KEY`, `ZYTE_API_KEY`.
-
-## Semantic matching
-
-Installing `requirements-ml.txt` enables sentence-transformers + Chroma title
-matching alongside rapidfuzz; digest entries are tagged `[fuzzy]`,
-`[semantic]`, or `[fuzzy+semantic]` so the two can be compared. Tune
-`semantic_threshold` in `config/filters.yaml`. Without those packages the run
-is fuzzy-only.
+Optional env vars / repo secrets: `OPENROUTER_API_KEY` (LLM inference + the
+`ai_digest` flag in filters.yaml; models via `RESOLVE_MODEL`/`DIGEST_MODEL`),
+`JSEARCH_API_KEY`.
 
 ## Tests
 
 ```
+pip install -r requirements-dev.txt
 pytest
 ```

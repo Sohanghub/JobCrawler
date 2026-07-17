@@ -1,6 +1,5 @@
 # The registry. Adding a Tier 0 company = one entry here, zero code.
-# Tier 1 will add: url + selectors:{...}; Tier 2: xhr:{...} or playwright: true;
-# Tier 3: zyte: true. (Phases 2-3.)
+# Tier 1 adds: url + selectors:{...}; Tier 2 adds: xhr:{...}.
 # All boards below verified live on 2026-07-11.
 
 - name: Stripe
@@ -60,11 +59,6 @@
     site: Workday
 
 # --- Tier 2: SPA whose internal JSON endpoint is recorded (no browser) ---
-# For sites where the endpoint can't be replayed, use instead:
-#   url: <careers page>
-#   playwright:
-#     capture: <regex matched against XHR URLs>
-#     jobs_path: ... / fields: ... (same as xhr)
 
 - name: Linear
   tier: 2
@@ -103,3 +97,195 @@
   tier: 0
   ats: greenhouse
   token: figma
+
+- name: NVIDIA
+  tier: 0
+  ats: workday
+  workday:
+    host: nvidia.wd5.myworkdayjobs.com
+    site: NVIDIAExternalCareerSite
+
+- name: cred
+  tier: 0
+  ats: lever
+  token: cred
+
+- name: meesho
+  tier: 0
+  ats: lever
+  token: meesho
+
+- name: groww
+  tier: 0
+  ats: greenhouse
+  token: groww
+
+- name: paytm
+  tier: 0
+  ats: lever
+  token: paytm
+
+- name: druva
+  tier: 0
+  ats: greenhouse
+  token: druva
+
+- name: mindtickle
+  tier: 0
+  ats: lever
+  token: mindtickle
+
+- name: observeai
+  tier: 0
+  ats: greenhouse
+  token: observeai
+
+- name: sigmoid
+  tier: 0
+  ats: greenhouse
+  token: sigmoid
+
+- name: zscaler
+  tier: 0
+  ats: greenhouse
+  token: zscaler
+
+- name: rubrik
+  tier: 0
+  ats: greenhouse
+  token: rubrik
+
+- name: pure storage
+  tier: 0
+  ats: greenhouse
+  token: purestorage
+
+- name: airbnb
+  tier: 0
+  ats: greenhouse
+  token: airbnb
+
+- name: coinbase
+  tier: 0
+  ats: greenhouse
+  token: coinbase
+
+- name: dropbox
+  tier: 0
+  ats: greenhouse
+  token: dropbox
+
+- name: twilio
+  tier: 0
+  ats: greenhouse
+  token: twilio
+
+- name: okta
+  tier: 0
+  ats: greenhouse
+  token: okta
+
+- name: elastic
+  tier: 0
+  ats: greenhouse
+  token: elastic
+
+- name: datadog
+  tier: 0
+  ats: greenhouse
+  token: datadog
+
+- name: confluent
+  tier: 0
+  ats: ashby
+  token: confluent
+
+- name: notion
+  tier: 0
+  ats: ashby
+  token: notion
+
+- name: plaid
+  tier: 0
+  ats: ashby
+  token: plaid
+
+- name: brex
+  tier: 0
+  ats: greenhouse
+  token: brex
+
+- name: vercel
+  tier: 0
+  ats: greenhouse
+  token: vercel
+
+- name: grafanalabs
+  tier: 0
+  ats: greenhouse
+  token: grafanalabs
+
+- name: cockroachlabs
+  tier: 0
+  ats: greenhouse
+  token: cockroachlabs
+
+- name: anthropic
+  tier: 0
+  ats: greenhouse
+  token: anthropic
+
+- name: scaleai
+  tier: 0
+  ats: greenhouse
+  token: scaleai
+
+- name: mongodb
+  tier: 0
+  ats: greenhouse
+  token: mongodb
+
+- name: amplitude
+  tier: 0
+  ats: greenhouse
+  token: amplitude
+
+- name: mixpanel
+  tier: 0
+  ats: greenhouse
+  token: mixpanel
+
+- name: launchdarkly
+  tier: 0
+  ats: greenhouse
+  token: launchdarkly
+
+- name: circleci
+  tier: 0
+  ats: greenhouse
+  token: circleci
+
+- name: airbyte
+  tier: 0
+  ats: ashby
+  token: airbyte
+
+- name: starburst
+  tier: 0
+  ats: greenhouse
+  token: starburst
+
+- name: clickhouse
+  tier: 0
+  ats: greenhouse
+  token: clickhouse
+
+- name: supabase
+  tier: 0
+  ats: ashby
+  token: supabase
+
+- name: temporaltechnologies
+  tier: 0
+  ats: greenhouse
+  token: temporaltechnologies

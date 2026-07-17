@@ -33,7 +33,8 @@ class Store:
         """Insert all fetched jobs; return only the never-seen-before ones.
 
         Unmatched jobs are stored too, so loosening filters later never
-        re-notifies old postings.
+        re-notifies old postings. Already-seen jobs get their matched flag
+        refreshed so filter edits propagate to stored rows.
         """
         now = _utcnow()
         new = []
@@ -44,6 +45,9 @@ class Store:
                  j.posted_at, now, int(j.id in matched_ids)))
             if cur.rowcount:
                 new.append(j)
+            else:
+                self.db.execute("UPDATE jobs SET matched=? WHERE id=?",
+                                (int(j.id in matched_ids), j.id))
         self.db.commit()
         return new
 
@@ -82,9 +86,13 @@ class Store:
                 alerts.append(f"{name}: {errors} consecutive failed runs "
                               f"({(rows[0][2] or '')[:120]})")
                 continue
-            # compare the last two *fetched* runs; 'unchanged' runs don't count
-            oks = [jf for status, jf, _ in rows if status == "ok"]
-            if len(oks) >= 2 and oks[0] == 0 and oks[1] > 0:
+            # compare the last two successfully parsed runs, over full
+            # history: an old "ok 0" must not scroll out behind a run of
+            # 'unchanged' rows and silence the alert
+            oks = [jf for (jf,) in self.db.execute(
+                "SELECT jobs_found FROM run_log WHERE company=? AND "
+                "status='ok' ORDER BY rowid DESC LIMIT 2", (name,))]
+            if len(oks) == 2 and oks[0] == 0 and oks[1] > 0:
                 alerts.append(f"{name}: 0 jobs found (was {oks[1]}) — "
                               "parser may be broken")
         return alerts
