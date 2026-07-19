@@ -1,1 +1,28 @@
-[]
+- name: slice
+  entry:
+    name: slice
+    tier: 0
+    ats: greenhouse
+    token: slice
+  evidence: '62 jobs live; sample: Account Manager; Associate Account Manager; Customer
+    Experience Representative'
+  source: probe
+- name: clear
+  entry:
+    name: clear
+    tier: 0
+    ats: greenhouse
+    token: clear
+  evidence: '39 jobs live; sample: Customer Success Director - Healthcare (C1 - B2B);
+    Cybersecurity Risk Analyst II; Director, Learning and Development '
+  source: probe
+- name: neon
+  entry:
+    name: neon
+    tier: 0
+    ats: lever
+    token: neon
+  evidence: '11 jobs live; sample: Analista de Growth Pleno - Cards Acquisition |
+    Afirmativa para Pessoas com Deficiência; Banco de Talentos - Analista de Políticas
+    de Crédito; Banco de Talentos - Comunidade Negra'
+  source: probe
