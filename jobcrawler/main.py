@@ -5,6 +5,7 @@ from . import matching, notify, registry
 from .fetchers import FETCHERS
 from .http import Http, Unchanged
 from .store import Store
+from .urls import Blocked
 
 log = logging.getLogger("jobcrawler")
 
@@ -47,6 +48,12 @@ def main():
             http.commit_cache()  # refreshed ETag; prior parse was good
             store.log_run(name, "unchanged", 0)
             log.info("%s: unchanged since last run", name)
+            continue
+        except Blocked as e:
+            # Its own status, not "error": nothing is broken and retrying
+            # daily won't fix it, so this must not raise a health alert.
+            log.warning("%s: %s", name, e)
+            store.log_run(name, "blocked", 0, str(e))
             continue
         except Exception as e:
             # no commit_cache(): next run must re-fetch and re-parse

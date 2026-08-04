@@ -15,7 +15,7 @@ def fetch(company, http):
             title=j.get("text", ""),
             location=categories.get("location") or "",
             url=j.get("hostedUrl", ""),
-            description=(j.get("descriptionPlain") or "")[:2000],
+            description=(j.get("descriptionPlain") or "")[:8000],
             posted_at=str(j.get("createdAt", "")),
             source_tier=0,
         ))

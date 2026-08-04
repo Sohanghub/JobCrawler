@@ -1,10 +1,15 @@
 # ============================================================
 # EDIT ME before the first real run — these are placeholders.
 # ============================================================
-# roles: keywords fuzzy-matched against job titles (rapidfuzz partial_ratio)
-# title_threshold: 0-100; lower = looser matching
-# locations: case-insensitive substrings matched against the job's location
-# experience: not enforced yet (Phase 2 heuristic)
+# roles: a title matches when the role's words appear in order with at
+#   most one word between them ("Software Engineer" matches "Senior
+#   Software Development Engineer" but not "Software QA Tools Engineer").
+#   "ML"/"AI" also match the spelled-out forms. Add a role per phrasing
+#   you care about (e.g. "Backend Developer" is NOT implied by
+#   "Backend Engineer").
+# locations: case-insensitive whole-word match against the job's location
+# experience: max years; enforced against title AND description
+#   (seniority words, "Engineer III"/"SDE 4" levels, "N+ years" mentions)
 
 roles:
   - Software Engineer
@@ -12,8 +17,6 @@ roles:
   - AI Engineer
   - ML Engineer
   - Data Scientist
-
-title_threshold: 85
 
 locations:
   - India

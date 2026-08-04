@@ -1,5 +1,8 @@
 - name: razorpay
   url: ''
+  llm: 'unknown: Razorpay careers page (https://razorpay.com/careers) is a Framer-built
+    static site without visible job postings. No known ATS integration found, no server-rendered
+    job listings in HTML, and Framer sea'
 - name: zepto
   url: ''
 - name: sharechat

@@ -14,7 +14,7 @@ def fetch(company, http):
             title=j.get("title", ""),
             location=j.get("location", ""),
             url=j.get("jobUrl", ""),
-            description=(j.get("descriptionPlain") or "")[:2000],
+            description=(j.get("descriptionPlain") or "")[:8000],
             posted_at=j.get("publishedAt", ""),
             source_tier=0,
         ))

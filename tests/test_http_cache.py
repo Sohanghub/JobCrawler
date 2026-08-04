@@ -26,8 +26,12 @@ class FakeSession:
 
 
 def make_http(tmp_path, responses):
+    # check_robots=False: these exercise the page cache, and a robots.txt
+    # fetch per host would eat the canned responses. The gate has its own
+    # tests in test_robots.py.
     store = Store(str(tmp_path / "jobs.db"))
-    return Http(store, session=FakeSession(responses), min_interval=0)
+    return Http(store, session=FakeSession(responses), min_interval=0,
+                check_robots=False)
 
 
 def test_body_hash_short_circuit(tmp_path):

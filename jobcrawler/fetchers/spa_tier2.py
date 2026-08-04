@@ -25,7 +25,7 @@ def _extract(company, cfg, data):
             id=make_id(company["name"], native_id=_get(it, fields.get("id", "")),
                        url=url, title=title, location=location),
             company=company["name"], title=title, location=location, url=url,
-            description=_get(it, fields.get("description", ""))[:2000],
+            description=_get(it, fields.get("description", ""))[:8000],
             source_tier=2))
     return jobs
 

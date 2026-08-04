@@ -67,3 +67,29 @@ def test_health_alerts(tmp_path):
     assert any("Broken" in a and "2 consecutive" in a for a in alerts)
     assert any("ZeroDrop" in a and "was 50" in a for a in alerts)
     assert any("StaleZero" in a and "was 50" in a for a in alerts)
+
+
+def test_blocked_alerts_only_for_companies_that_used_to_work(tmp_path):
+    store = Store(str(tmp_path / "jobs.db"))
+
+    # was delivering, now robots-blocked: worth telling the user about
+    store.log_run("WasWorking", "ok", 12)
+    store.log_run("WasWorking", "blocked", 0, "robots.txt disallows /jobs")
+
+    # never parsed anything, so nothing went quiet — approving it was the
+    # mistake, and one alert a day forever won't help
+    store.log_run("NeverWorked", "blocked", 0, "robots.txt disallows /jobs")
+
+    # blocked is not an error: it must not feed the consecutive-failure count
+    store.log_run("Mixed", "ok", 3)
+    store.log_run("Mixed", "error", 0, "boom")
+    store.log_run("Mixed", "error", 0, "boom")
+    store.log_run("Mixed", "blocked", 0, "robots.txt disallows /jobs")
+
+    alerts = store.health_alerts()
+    assert len(alerts) == 2
+    assert any("WasWorking" in a and "blocked" in a for a in alerts)
+    assert not any("NeverWorked" in a for a in alerts)
+    # Mixed is reported as blocked, not as two consecutive failures
+    assert any("Mixed" in a and "blocked" in a for a in alerts)
+    assert not any("consecutive" in a for a in alerts)

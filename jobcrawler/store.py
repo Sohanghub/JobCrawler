@@ -12,6 +12,8 @@ CREATE TABLE IF NOT EXISTS run_log(
 CREATE TABLE IF NOT EXISTS page_cache(
     url TEXT PRIMARY KEY, etag TEXT, last_modified TEXT,
     body_sha1 TEXT, fetched_at TEXT);
+CREATE TABLE IF NOT EXISTS robots_cache(
+    host TEXT PRIMARY KEY, body TEXT, fetched_at TEXT);
 """
 
 
@@ -69,6 +71,26 @@ class Store:
                         (url, etag, last_modified, body_sha1, _utcnow()))
         self.db.commit()
 
+    def get_robots(self, host, max_age):
+        """Cached robots.txt body, or None when absent or older than max_age
+        seconds. An empty body is a real answer ("no rules"), not a miss."""
+        row = self.db.execute(
+            "SELECT body, fetched_at FROM robots_cache WHERE host=?",
+            (host,)).fetchone()
+        if not row:
+            return None
+        try:
+            age = (datetime.datetime.now(datetime.timezone.utc)
+                   - datetime.datetime.fromisoformat(row[1])).total_seconds()
+        except (TypeError, ValueError):
+            return None
+        return row[0] if age <= max_age else None
+
+    def set_robots(self, host, body):
+        self.db.execute("INSERT OR REPLACE INTO robots_cache VALUES (?,?,?)",
+                        (host, body, _utcnow()))
+        self.db.commit()
+
     def health_alerts(self):
         """Companies that look silently broken, for the daily digest."""
         alerts = []
@@ -85,6 +107,16 @@ class Store:
             if errors >= 2:
                 alerts.append(f"{name}: {errors} consecutive failed runs "
                               f"({(rows[0][2] or '')[:120]})")
+                continue
+            if rows and rows[0][0] == "blocked":
+                # Only worth reporting if the company used to deliver: one
+                # that never parsed a job has nothing to have gone quiet.
+                # Actionable either way — drop it, or point the registry at a
+                # URL its robots.txt permits.
+                if self.db.execute("SELECT 1 FROM run_log WHERE company=? AND "
+                                   "status='ok' LIMIT 1", (name,)).fetchone():
+                    alerts.append(f"{name}: blocked — "
+                                  f"{(rows[0][2] or '')[:120]}")
                 continue
             # compare the last two successfully parsed runs, over full
             # history: an old "ok 0" must not scroll out behind a run of

@@ -20,6 +20,7 @@ import os
 import yaml
 
 from .. import matching, notify, registry
+from ..urls import Blocked
 from .resolve import CANDIDATES, PENDING, _http, _load, _save, norm_token
 
 log = logging.getLogger(__name__)
@@ -42,10 +43,12 @@ def jsearch_candidates(http, filters):
     for role in filters["roles"][:2]:
         query = f"{role} in {filters['locations'][0]}"
         try:
+            # robots=False: a keyed API we are a client of, not a crawl target
             r = http.get("https://jsearch.p.rapidapi.com/search",
                          params={"query": query, "num_pages": "1"},
                          headers={"X-RapidAPI-Key": key,
-                                  "X-RapidAPI-Host": "jsearch.p.rapidapi.com"})
+                                  "X-RapidAPI-Host": "jsearch.p.rapidapi.com"},
+                         robots=False)
             r.raise_for_status()
         except Exception as e:
             log.warning("JSearch query %r failed: %s", query, e)
@@ -74,7 +77,10 @@ def extract_board_links(html):
 
 def site_search_candidates(http, filters):
     # ponytail: DuckDuckGo HTML scrape — flakiest source, wrapped best-effort;
-    # the token-file import below is the reliable "find everything" mechanism
+    # the token-file import below is the reliable "find everything" mechanism.
+    # Now also subject to the robots.txt gate, which DuckDuckGo's own file
+    # closes on /html/: expect this source to yield nothing and the token file
+    # plus resolve's sitemap lookup to carry discovery.
     out = []
     location = filters["locations"][0]
     for host in ATS_HOSTS:
@@ -85,6 +91,8 @@ def site_search_candidates(http, filters):
             found = extract_board_links(r.text)
             log.info("site:%s search -> %d board link(s)", host, len(found))
             out += found
+        except Blocked as e:
+            log.info("site search skipped for %s: %s", host, e)
         except Exception as e:
             log.warning("site search failed for %s: %s", host, e)
     return out

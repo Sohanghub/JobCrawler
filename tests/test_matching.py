@@ -6,8 +6,7 @@ from jobcrawler.matching import matches
 from jobcrawler.models import JobPosting
 
 FILTERS = {
-    "roles": ["Software Engineer", "Backend Engineer"],
-    "title_threshold": 85,
+    "roles": ["Software Engineer", "Backend Engineer", "ML Engineer"],
     "locations": ["India", "Bengaluru"],
     "include_remote": False,
 }
@@ -20,10 +19,18 @@ def job(title, location):
 
 @pytest.mark.parametrize("title,location,expected", [
     ("Software Engineer", "Bengaluru, India", True),
-    ("Senior Software Engineer, Payments", "Remote - India", True),   # "india" substring
+    ("Senior Software Engineer, Payments", "Remote - India", True),
     ("Backend Engineer II", "Bengaluru", True),
+    ("Machine Learning Engineer", "Bengaluru", True),     # ML alias
+    ("Software Development Engineer II", "Bengaluru", True),  # one-word gap ok
     ("Account Executive", "Bengaluru, India", False),     # wrong role
+    ("Escalation Engineer", "Bengaluru, India", False),   # engineer != our roles
+    ("Escalation Engineer - AI Security", "Bengaluru", False),  # words out of order
+    ("Software QA Tools Development Engineer", "Bengaluru", False),  # gap too wide
+    ("ASIC Verification Engineer", "Bengaluru", False),
+    ("Customer Support Specialist", "Bengaluru", False),
     ("Software Engineer", "New York, USA", False),        # wrong location
+    ("Software Engineer", "Indianapolis, Indiana", False),  # "india" substring trap
     ("SOFTWARE ENGINEER", "REMOTE", False),               # bare remote, no India tie
 ])
 def test_matches(title, location, expected):
@@ -34,6 +41,7 @@ def test_matches(title, location, expected):
     ("Remote", True),
     ("Remote - US", False),        # remote elsewhere is not remote-for-us
     ("Remote - India", True),      # passes via the locations list, not the toggle
+    ("Remote - Indiana, USA", False),
     ("New York, USA", False),      # still needs bare "remote" or an India city
 ])
 def test_include_remote_toggle(location, expected):
@@ -54,6 +62,13 @@ FILTERS_EXP = {**FILTERS, "experience": "0-2 years"}
     ("Software Engineer (3-5 Years)", "", False),          # years in the title
     ("Software Engineer Intern", "5+ years preferred", True),  # junior title wins
     ("Junior Software Engineer", "", True),
+    ("Software Development Engineer 4", "", False),        # numeric level
+    ("Software Engineer III", "", False),                  # roman level
+    ("Software Engineer II", "", True),                    # II and below pass
+    ("Backend Engineer (1 - 3 Years)", "", True),          # years, not a level
+    ("Software Engineer", "founded 12 years ago", True),   # history, not a req
+    # description outranks a harmless-looking title
+    ("Software Engineer", "great intro... then 7+ years of experience", False),
 ])
 def test_experience_heuristic(title, description, expected):
     j = job(title, "Bengaluru, India")

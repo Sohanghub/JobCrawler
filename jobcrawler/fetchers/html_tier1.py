@@ -3,7 +3,9 @@ from urllib.parse import urljoin
 
 from bs4 import BeautifulSoup
 
+from ..extract import clean_text
 from ..models import JobPosting, make_id
+from ..urls import Blocked, is_binary_url
 
 log = logging.getLogger(__name__)
 
@@ -41,22 +43,37 @@ def fetch(company, http):
 
     Bounded 2-hop crawl: the listing page, then (optionally) up to
     detail_limit detail pages linked from it.
+
+    The detail hop stays opt-in via a `detail:` block, but no longer needs a
+    `description` selector inside it: without one, boilerplate-stripped page
+    text stands in (see extract.clean_text), so `detail: {}` is enough to get
+    a company the description text matching.experience_ok reads.
     """
     r = http.get(company["url"], cache=True)
     r.raise_for_status()
     jobs = parse_listing(company, r.text)
 
     detail = company["selectors"].get("detail")
-    if detail and detail.get("description"):
-        for j in jobs[:company.get("detail_limit", 20)]:
-            if not j.url:
-                continue
-            try:
-                d = http.get(j.url)
-                d.raise_for_status()
-                j.description = _text(BeautifulSoup(d.text, "lxml"),
-                                      detail["description"])[:2000]
-            except Exception as e:
-                log.warning("%s: detail fetch failed for %s: %s",
-                            company["name"], j.url, e)
+    if detail is None:
+        return jobs
+    for j in jobs[:company.get("detail_limit", 20)]:
+        # Firecrawl's crawler skips known binary extensions before spending a
+        # request on them; a loose link selector picks up plenty of those.
+        if not j.url or is_binary_url(j.url):
+            continue
+        try:
+            d = http.get(j.url)
+            d.raise_for_status()
+        except Blocked as e:
+            log.info("%s: skipping detail page — %s", company["name"], e)
+            continue
+        except Exception as e:
+            log.warning("%s: detail fetch failed for %s: %s",
+                        company["name"], j.url, e)
+            continue
+        if detail.get("description"):
+            j.description = _text(BeautifulSoup(d.text, "lxml"),
+                                  detail["description"])[:8000]
+        else:
+            j.description = clean_text(d.text)
     return jobs
