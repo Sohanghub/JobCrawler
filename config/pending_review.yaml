@@ -1,1 +1,27 @@
-[]
+- name: slice
+  entry:
+    name: slice
+    tier: 0
+    ats: greenhouse
+    token: slice
+  evidence: '45 jobs live; sample: Account Manager; Associate Account Manager; CRM
+    Lead'
+  source: probe
+- name: clear
+  entry:
+    name: clear
+    tier: 0
+    ats: greenhouse
+    token: clear
+  evidence: '41 jobs live; sample: Corporate Memberships Intern (Fall 2026); Customer
+    Success Director - Healthcare (C1 - B2B); Cybersecurity Risk Analyst II'
+  source: probe
+- name: neon
+  entry:
+    name: neon
+    tier: 0
+    ats: lever
+    token: neon
+  evidence: '14 jobs live; sample: Analista de CRM Sênior - Seguros; Analista de Growth
+    (Business Analytics) - Pleno; Analista de Growth Pleno - Cards Acquisition'
+  source: probe
