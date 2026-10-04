@@ -25,3 +25,12 @@
   evidence: '14 jobs live; sample: Analista de CRM Sênior - Seguros; Analista de Growth
     (Business Analytics) - Pleno; Analista de Growth Pleno - Cards Acquisition'
   source: probe
+- name: snyk
+  entry:
+    name: snyk
+    tier: 0
+    ats: ashby
+    token: snyk
+  evidence: '13 jobs live; sample: Senior Product Security Engineer; Senior Revenue
+    Accountant; Talent Business Partner Director'
+  source: probe

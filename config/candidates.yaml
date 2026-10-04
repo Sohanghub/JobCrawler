@@ -141,8 +141,6 @@
   url: ''
 - name: sentinelone
   url: ''
-- name: snyk
-  url: ''
 - name: gong
   url: ''
 - name: segment
